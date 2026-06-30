@@ -1,0 +1,434 @@
+# AI Employee
+
+# System Architecture
+
+## Document: 01-system-architecture.md
+
+**Version:** 1.0
+
+**Status:** Draft
+
+---
+
+# 1. Overview
+
+AI Employee is a multi-tenant SaaS platform that enables businesses to deploy intelligent AI employees capable of communicating naturally with customers, understanding business knowledge, using business tools, and completing tasks autonomously.
+
+Unlike traditional chatbot platforms, AI Employee separates business logic, AI reasoning, workflow automation, and external integrations into independent services.
+
+The architecture is designed to be modular, scalable, secure, cloud-native, and capable of serving thousands of businesses simultaneously.
+
+---
+
+# 2. High-Level Architecture
+
+```
+                        Customer
+                            │
+      ┌─────────────────────┼──────────────────────┐
+      │                     │                      │
+  WhatsApp             Website Chat         Instagram
+      │                     │                      │
+      └─────────────────────┼──────────────────────┘
+                            │
+                   Channel Gateway Layer
+                            │
+                            ▼
+                    Fastify Backend API
+                            │
+ ┌───────────────┬──────────┼──────────┬───────────────┐
+ │               │          │          │               │
+Auth Service Workspace User Service Billing Service API Gateway
+                            │
+                            ▼
+                    AI Employee Engine
+                            │
+             ┌──────────────┼──────────────┐
+             │              │              │
+      Memory Engine   Tool Registry   RAG Engine
+             │              │              │
+             └──────────────┼──────────────┘
+                            │
+                    Tool Orchestrator
+                            │
+ ┌────────┬────────┬────────┬────────┬────────┬────────┐
+ │        │        │        │        │        │
+CRM   Orders  Inventory Calendar Payments Knowledge
+ │        │        │        │        │        │
+ └────────┴────────┴────────┴────────┴────────┘
+                            │
+                      n8n Automation
+                            │
+      ┌───────────────┬───────────────┬──────────────┐
+      │               │               │
+ Shopify        Google APIs      Payment APIs
+      │               │               │
+      └───────────────┴───────────────┴──────────────┘
+                            │
+        PostgreSQL • Redis • pgvector • Cloudflare R2
+```
+
+---
+
+# 3. Core System Components
+
+The platform is divided into independent services.
+
+## Frontend
+
+The frontend is responsible only for user interaction.
+
+Responsibilities include:
+
+* Authentication
+* Dashboard
+* Workspace management
+* Knowledge uploads
+* Analytics
+* Billing
+* Team management
+* AI configuration
+* Integration management
+
+The frontend never contains business logic.
+
+---
+
+## Backend API
+
+The backend is the heart of the SaaS platform.
+
+Responsibilities include:
+
+* Authentication
+* Authorization
+* Multi-tenancy
+* API Gateway
+* Database access
+* Billing
+* Workspace management
+* User management
+* Subscription management
+* Usage tracking
+* Rate limiting
+
+The backend owns all business rules.
+
+---
+
+## AI Employee Engine
+
+The AI Employee Engine is the intelligence layer.
+
+Responsibilities include:
+
+* Understand customer intent
+* Maintain conversation context
+* Use memory
+* Decide which tools to call
+* Generate responses
+* Support multilingual conversations
+* Process text, images, documents, audio, and video
+* Reason before taking actions
+
+The AI should behave like a trained employee rather than a scripted chatbot.
+
+---
+
+## Memory Engine
+
+The Memory Engine stores long-term customer knowledge.
+
+Examples include:
+
+* Customer preferences
+* Previous purchases
+* Conversation summaries
+* Frequently asked questions
+* Preferred language
+* Business relationships
+* Customer sentiment
+* Buying patterns
+
+The AI uses this memory in every conversation.
+
+---
+
+## RAG Engine
+
+The Retrieval-Augmented Generation engine allows the AI to answer questions using business knowledge.
+
+Supported knowledge sources include:
+
+* PDF documents
+* Websites
+* Word documents
+* Excel files
+* Images
+* Videos
+* FAQs
+* Product catalogs
+* Notion
+* Google Drive
+* Internal documentation
+
+The RAG Engine automatically chunks, embeds, indexes, and retrieves information before generating responses.
+
+---
+
+## Tool Registry
+
+The Tool Registry contains every capability available to the AI.
+
+Examples include:
+
+* Product Search
+* Inventory Lookup
+* Order Tracking
+* Payment Creation
+* Invoice Generation
+* Calendar Booking
+* CRM Update
+* Shipping Tracking
+* Email Sending
+* WhatsApp Messaging
+* Knowledge Search
+* Analytics
+* Human Escalation
+
+The AI selects tools dynamically instead of relying on predefined workflows.
+
+---
+
+## Tool Orchestrator
+
+The Tool Orchestrator validates, executes, and monitors tool calls generated by the AI.
+
+Responsibilities include:
+
+* Permission checks
+* Validation
+* Retry logic
+* Logging
+* Error handling
+* Audit trails
+
+---
+
+## n8n Automation Engine
+
+n8n is responsible for executing automation workflows.
+
+Examples include:
+
+* Sending WhatsApp messages
+* CRM synchronization
+* Payment processing
+* Appointment reminders
+* Daily reports
+* Email campaigns
+* Review requests
+* Background jobs
+* Workflow scheduling
+
+n8n should never contain core business logic.
+
+Business logic always remains inside the backend.
+
+---
+
+# 4. Data Storage
+
+The platform uses multiple storage systems.
+
+## PostgreSQL
+
+Stores structured business data including:
+
+* Users
+* Workspaces
+* Customers
+* Conversations
+* Products
+* Orders
+* Payments
+* Appointments
+* Integrations
+* Billing
+* Analytics
+
+---
+
+## Redis
+
+Used for:
+
+* Sessions
+* Queue management
+* Rate limiting
+* Temporary cache
+* Background processing
+
+---
+
+## pgvector
+
+Stores vector embeddings for semantic search across business knowledge.
+
+---
+
+## Cloudflare R2
+
+Stores files including:
+
+* Images
+* PDFs
+* Videos
+* Audio
+* Documents
+* Product catalogs
+
+---
+
+# 5. Communication Flow
+
+Customer sends a message.
+
+↓
+
+Channel Gateway receives the message.
+
+↓
+
+Backend validates the workspace.
+
+↓
+
+Conversation is loaded.
+
+↓
+
+Memory is retrieved.
+
+↓
+
+Relevant business knowledge is retrieved.
+
+↓
+
+AI reasons about the request.
+
+↓
+
+AI decides which tools are required.
+
+↓
+
+Tool Orchestrator executes approved tools.
+
+↓
+
+n8n performs required automations.
+
+↓
+
+Results return to the AI.
+
+↓
+
+AI generates a natural response.
+
+↓
+
+Conversation history and analytics are updated.
+
+↓
+
+Response is sent back to the customer.
+
+---
+
+# 6. Multi-Tenant Architecture
+
+Each business operates inside an isolated workspace.
+
+Every workspace has independent:
+
+* Users
+* AI configuration
+* API keys
+* Integrations
+* Documents
+* Customers
+* Conversations
+* Analytics
+* Billing
+* Storage
+* Workflows
+
+Workspace isolation is enforced at every layer of the platform.
+
+---
+
+# 7. Security Architecture
+
+The platform implements security at multiple layers.
+
+Features include:
+
+* JWT Authentication
+* Refresh Tokens
+* OAuth Login
+* Role-Based Access Control
+* Workspace Isolation
+* Encrypted Secrets
+* HTTPS Everywhere
+* Input Validation
+* API Rate Limiting
+* Audit Logs
+* Webhook Verification
+
+---
+
+# 8. Scalability
+
+Every service should be independently scalable.
+
+Examples include:
+
+* Multiple backend instances
+* Separate AI workers
+* Multiple n8n workers
+* Redis queues
+* Horizontal database scaling
+* CDN for static assets
+
+No component should become a single point of failure.
+
+---
+
+# 9. Guiding Architectural Principles
+
+The platform follows these principles:
+
+* Backend owns business logic.
+* AI owns reasoning.
+* n8n owns automation.
+* Tools own integrations.
+* PostgreSQL owns business data.
+* pgvector owns semantic search.
+* Redis owns caching and queues.
+* Cloudflare R2 owns file storage.
+* Every service is modular.
+* Every workspace is isolated.
+* Every action is logged.
+* Every integration is replaceable.
+* Every component is independently scalable.
+
+---
+
+# 10. Long-Term Vision
+
+AI Employee is not designed as a chatbot platform.
+
+It is designed as an AI Employee Operating System where businesses can deploy intelligent digital employees capable of understanding, reasoning, communicating, and performing real business operations across any communication channel using connected business systems and automation tools.
