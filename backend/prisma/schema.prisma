@@ -6,3 +6,147 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+
+  @@map("user_status")
+}
+
+enum WorkspaceStatus {
+  ACTIVE
+  TRIAL
+  SUSPENDED
+  ARCHIVED
+
+  @@map("workspace_status")
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  SALES
+  SUPPORT
+  VIEWER
+
+  @@map("workspace_role")
+}
+
+model User {
+  id              String     @id @default(uuid()) @db.Uuid
+  firstName       String     @map("first_name")
+  lastName        String?    @map("last_name")
+  email           String     @unique @db.VarChar(255)
+  passwordHash    String     @map("password_hash")
+  avatarUrl       String?    @map("avatar_url")
+
+  emailVerified   Boolean    @default(false) @map("email_verified")
+  status          UserStatus @default(PENDING)
+
+  lastLoginAt     DateTime?  @map("last_login_at")
+
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  deletedAt       DateTime?  @map("deleted_at")
+
+  // Relations
+  workspacesOwned Workspace[]       @relation("WorkspaceOwner")
+  workspaceMembers WorkspaceMember[]
+  refreshTokens    RefreshToken[]
+  invitedMembers   WorkspaceMember[] @relation("WorkspaceMemberInvitedBy")
+
+  @@index([status])
+  @@map("users")
+}
+
+model Workspace {
+  id          String            @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String            @unique @db.VarChar(100)
+
+  logoUrl     String?           @map("logo_url")
+  industry    String?
+
+  timezone    String            @default("UTC")
+  currency    String            @default("USD")
+
+  status      WorkspaceStatus   @default(TRIAL)
+
+  ownerId     String            @map("owner_id") @db.Uuid
+
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  deletedAt   DateTime?         @map("deleted_at")
+
+  // Relations
+  owner        User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members      WorkspaceMember[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id                     String          @id @default(uuid()) @db.Uuid
+
+  workspaceId            String          @map("workspace_id") @db.Uuid
+  userId                 String          @map("user_id") @db.Uuid
+
+  role                   WorkspaceRole   @default(VIEWER)
+
+  invitedById            String?         @map("invited_by_id") @db.Uuid
+
+  invitationAccepted     Boolean         @default(false) @map("invitation_accepted")
+  invitationAcceptedAt   DateTime?       @map("invitation_accepted_at")
+
+  joinedAt               DateTime        @default(now()) @map("joined_at")
+
+  createdAt              DateTime        @default(now()) @map("created_at")
+  updatedAt              DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  workspace              Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  invitedBy              User?     @relation("WorkspaceMemberInvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, userId])
+
+  @@index([workspaceId])
+  @@index([userId])
+  @@index([invitedById])
+
+  @@map("workspace_members")
+}
+
+model RefreshToken {
+  id            String      @id @default(uuid()) @db.Uuid
+
+  userId        String      @map("user_id") @db.Uuid
+
+  tokenHash     String      @unique @map("token_hash")
+
+  deviceName    String?     @map("device_name")
+  ipAddress     String?     @map("ip_address")
+  userAgent     String?     @map("user_agent")
+
+  expiresAt     DateTime    @map("expires_at")
+  revokedAt     DateTime?   @map("revoked_at")
+
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([userId, revokedAt])
+
+  @@map("refresh_tokens")
+}
